@@ -293,6 +293,21 @@
             background: #d63031;
         }
         
+        .number-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            transition: border 0.3s ease;
+        }
+        
+        .number-input:focus {
+            outline: none;
+            border-color: #6c5ce7;
+        }
+        
         @media (max-width: 480px) {
             .container {
                 padding: 20px 15px;
@@ -320,33 +335,30 @@
         </header>
         
         <div class="tabs">
-            <div class="tab active" data-tab="sequential">按序查询</div>
+            <div class="tab active" data-tab="sequential">按序号查询</div>
             <div class="tab" data-tab="all">全部查询</div>
             <div class="tab" data-tab="random">随机抽取</div>
         </div>
         
-        <!-- 按序查询部分 -->
+        <!-- 按序号查询部分 -->
         <div class="section active" id="sequential">
+            <input type="number" class="number-input" id="index-input" placeholder="请输入序号 (1-10)" min="1" max="10">
+            
             <div class="card">
                 <div class="word" id="seq-word">dictionary</div>
                 <div class="meaning" id="seq-meaning">词典，字典</div>
             </div>
             
-            <div class="controls">
-                <button class="btn btn-outline" id="prev-btn">
-                    <i class="fas fa-arrow-left"></i> 上一个
-                </button>
-                <button class="btn" id="next-btn">
-                    下一个 <i class="fas fa-arrow-right"></i>
-                </button>
-            </div>
+            <button class="btn" id="query-btn">
+                <i class="fas fa-search"></i> 查询单词
+            </button>
             
             <button class="btn btn-secondary" id="show-meaning-btn">
                 <i class="fas fa-eye"></i> 显示释义
             </button>
             
             <div class="progress">
-                进度: <span id="progress-text">1/10</span>
+                词典总数: <span id="progress-text">10</span> 个单词
             </div>
         </div>
         
@@ -424,11 +436,11 @@
         const tabs = document.querySelectorAll('.tab');
         const sections = document.querySelectorAll('.section');
         
-        // 按序查询元素
+        // 按序号查询元素
+        const indexInput = document.getElementById('index-input');
         const seqWordElement = document.getElementById('seq-word');
         const seqMeaningElement = document.getElementById('seq-meaning');
-        const prevBtn = document.getElementById('prev-btn');
-        const nextBtn = document.getElementById('next-btn');
+        const queryBtn = document.getElementById('query-btn');
         const showMeaningBtn = document.getElementById('show-meaning-btn');
         const progressText = document.getElementById('progress-text');
         
@@ -477,8 +489,7 @@
             });
             
             // 绑定按钮事件
-            prevBtn.addEventListener('click', showPrevWord);
-            nextBtn.addEventListener('click', showNextWord);
+            queryBtn.addEventListener('click', queryByIndex);
             showMeaningBtn.addEventListener('click', toggleMeaning);
             randomBtn.addEventListener('click', pickRandomWord);
             showRandomMeaningBtn.addEventListener('click', toggleRandomMeaning);
@@ -522,7 +533,20 @@
             }
         }
         
-        // 更新按序查询视图
+        // 按序号查询单词
+        function queryByIndex() {
+            const index = parseInt(indexInput.value);
+            
+            if (isNaN(index) || index < 1 || index > dictionary.length) {
+                alert(`请输入有效的序号 (1-${dictionary.length})`);
+                return;
+            }
+            
+            currentIndex = index - 1; // 转换为0-based索引
+            updateSequentialView();
+        }
+        
+        // 更新按序号查询视图
         function updateSequentialView() {
             if (dictionary.length === 0) return;
             
@@ -532,31 +556,11 @@
             seqMeaningElement.classList.remove('show');
             
             // 更新进度
-            progressText.textContent = `${currentIndex + 1}/${dictionary.length}`;
+            progressText.textContent = dictionary.length;
             
-            // 更新按钮状态
-            prevBtn.disabled = currentIndex === 0;
-            nextBtn.disabled = currentIndex === dictionary.length - 1;
-        }
-        
-        // 显示上一个单词
-        async function showPrevWord() {
-            if (currentIndex > 0) {
-                currentIndex--;
-                updateSequentialView();
-                // 保存当前索引
-                await window.yuxStorage.setItem('currentIndex', currentIndex);
-            }
-        }
-        
-        // 显示下一个单词
-        async function showNextWord() {
-            if (currentIndex < dictionary.length - 1) {
-                currentIndex++;
-                updateSequentialView();
-                // 保存当前索引
-                await window.yuxStorage.setItem('currentIndex', currentIndex);
-            }
+            // 更新输入框
+            indexInput.value = currentIndex + 1;
+            indexInput.max = dictionary.length;
         }
         
         // 切换释义显示
@@ -579,7 +583,7 @@
                 
                 const wordText = document.createElement('div');
                 wordText.className = 'word-text';
-                wordText.textContent = item.word;
+                wordText.textContent = `${index + 1}. ${item.word}`;
                 
                 const wordMeaning = document.createElement('div');
                 wordMeaning.className = 'word-meaning';
