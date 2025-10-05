@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>移动词典查询</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            margin-top: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f1f2f6;
+            border-radius: 12px;
+            padding: 5px;
+            margin-bottom: 25px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            background: #6c5ce7;
+            color: white;
+            box-shadow: 0 4px 10px rgba(108, 92, 231, 0.4);
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .word {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .meaning {
+            font-size: 1.4rem;
+            color: #6c5ce7;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .meaning.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .btn {
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px auto;
+            width: 100%;
+            max-width: 280px;
+        }
+        
+        .btn:hover {
+            background: #5b4cdb;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(108, 92, 231, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: #00cec9;
+        }
+        
+        .btn-secondary:hover {
+            background: #00b5b2;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #6c5ce7;
+            color: #6c5ce7;
+            box-shadow: none;
+        }
+        
+        .btn-outline:hover {
+            background: #6c5ce7;
+            color: white;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .controls .btn {
+            flex: 1;
+            max-width: none;
+        }
+        
+        .word-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            padding: 10px;
+        }
+        
+        .word-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .word-item:last-child {
+            border-bottom: none;
+        }
+        
+        .word-text {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .word-meaning {
+            color: #6c757d;
+        }
+        
+        .import-area {
+            margin-top: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 1rem;
+            resize: none;
+            margin-bottom: 15px;
+            transition: border 0.3s ease;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #6c5ce7;
+        }
+        
+        .progress {
+            margin: 20px 0;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .picked {
+            background-color: #e8f5e9;
+            border-color: #4caf50;
+        }
+        
+        .picked .word {
+            color: #2e7d32;
+        }
+        
+        .picked .meaning {
+            color: #43a047;
+        }
+        
+        .status {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .highlight {
+            color: #6c5ce7;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .word {
+                font-size: 1.8rem;
+            }
+            
+            .meaning {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>移动词典查询</h1>
+            <p class="subtitle">按序查询 · 全部查询 · 随机抽取</p>
+        </header>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="sequential">按序查询</div>
+            <div class="tab" data-tab="all">全部查询</div>
+            <div class="tab" data-tab="random">随机抽取</div>
+        </div>
+        
+        <!-- 按序查询部分 -->
+        <div class="section active" id="sequential">
+            <div class="card">
+                <div class="word" id="seq-word">dictionary</div>
+                <div class="meaning" id="seq-meaning">词典，字典</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-outline" id="prev-btn">
+                    <i class="fas fa-arrow-left"></i> 上一个
+                </button>
+                <button class="btn" id="next-btn">
+                    下一个 <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+            
+            <button class="btn btn-secondary" id="show-meaning-btn">
+                <i class="fas fa-eye"></i> 显示释义
+            </button>
+            
+            <div class="progress">
+                进度: <span id="progress-text">1/10</span>
+            </div>
+        </div>
+        
+        <!-- 全部查询部分 -->
+        <div class="section" id="all">
+            <div class="word-list" id="word-list">
+                <!-- 单词列表将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 随机抽取部分 -->
+        <div class="section" id="random">
+            <div class="card" id="random-card">
+                <div class="word" id="random-word">vocabulary</div>
+                <div class="meaning" id="random-meaning">词汇，词汇量</div>
+            </div>
+            
+            <button class="btn" id="random-btn">
+                <i class="fas fa-random"></i> 随机抽取单词
+            </button>
+            
+            <button class="btn btn-secondary" id="show-random-meaning-btn">
+                <i class="fas fa-eye"></i> 显示释义
+            </button>
+            
+            <div class="status">
+                <div>已抽取: <span class="highlight" id="picked-count">0</span> 个</div>
+                <div>剩余: <span class="highlight" id="remaining-count">10</span> 个</div>
+            </div>
+        </div>
+        
+        <!-- 词典导入部分 -->
+        <div class="import-area">
+            <h3>导入词典</h3>
+            <textarea id="dictionary-input" placeholder="请输入单词列表，格式为：单词 释义（每行一个单词）&#10;例如：&#10;apple 苹果&#10;book 书籍&#10;computer 计算机"></textarea>
+            <button class="btn" id="import-btn">
+                <i class="fas fa-file-import"></i> 导入词典
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 初始词典数据
+        let dictionary = [
+            { word: "dictionary", meaning: "词典，字典" },
+            { word: "vocabulary", meaning: "词汇，词汇量" },
+            { word: "grammar", meaning: "语法" },
+            { word: "pronunciation", meaning: "发音" },
+            { word: "sentence", meaning: "句子" },
+            { word: "phrase", meaning: "短语" },
+            { word: "verb", meaning: "动词" },
+            { word: "noun", meaning: "名词" },
+            { word: "adjective", meaning: "形容词" },
+            { word: "adverb", meaning: "副词" }
+        ];
+        
+        // 已抽取的单词索引
+        let pickedIndices = new Set();
+        
+        // 当前显示的单词索引
+        let currentIndex = 0;
+        
+        // DOM元素
+        const tabs = document.querySelectorAll('.tab');
+        const sections = document.querySelectorAll('.section');
+        
+        // 按序查询元素
+        const seqWordElement = document.getElementById('seq-word');
+        const seqMeaningElement = document.getElementById('seq-meaning');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const showMeaningBtn = document.getElementById('show-meaning-btn');
+        const progressText = document.getElementById('progress-text');
+        
+        // 全部查询元素
+        const wordListElement = document.getElementById('word-list');
+        
+        // 随机抽取元素
+        const randomCard = document.getElementById('random-card');
+        const randomWordElement = document.getElementById('random-word');
+        const randomMeaningElement = document.getElementById('random-meaning');
+        const randomBtn = document.getElementById('random-btn');
+        const showRandomMeaningBtn = document.getElementById('show-random-meaning-btn');
+        const pickedCountElement = document.getElementById('picked-count');
+        const remainingCountElement = document.getElementById('remaining-count');
+        
+        // 导入词典元素
+        const dictionaryInput = document.getElementById('dictionary-input');
+        const importBtn = document.getElementById('import-btn');
+        
+        // 初始化
+        function init() {
+            // 绑定标签切换事件
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetTab = tab.getAttribute('data-tab');
+                    
+                    // 更新活动标签
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // 更新活动部分
+                    sections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === targetTab) {
+                            section.classList.add('active');
+                        }
+                    });
+                    
+                    // 如果是全部查询，刷新单词列表
+                    if (targetTab === 'all') {
+                        renderWordList();
+                    }
+                });
+            });
+            
+            // 绑定按钮事件
+            prevBtn.addEventListener('click', showPrevWord);
+            nextBtn.addEventListener('click', showNextWord);
+            showMeaningBtn.addEventListener('click', toggleMeaning);
+            randomBtn.addEventListener('click', pickRandomWord);
+            showRandomMeaningBtn.addEventListener('click', toggleRandomMeaning);
+            importBtn.addEventListener('click', importDictionary);
+            
+            // 初始化显示
+            updateSequentialView();
+            renderWordList();
+            updateRandomStats();
+        }
+        
+        // 更新按序查询视图
+        function updateSequentialView() {
+            const wordData = dictionary[currentIndex];
+            seqWordElement.textContent = wordData.word;
+            seqMeaningElement.textContent = wordData.meaning;
+            seqMeaningElement.classList.remove('show');
+            
+            // 更新进度
+            progressText.textContent = `${currentIndex + 1}/${dictionary.length}`;
+            
+            // 更新按钮状态
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === dictionary.length - 1;
+        }
+        
+        // 显示上一个单词
+        function showPrevWord() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateSequentialView();
+            }
+        }
+        
+        // 显示下一个单词
+        function showNextWord() {
+            if (currentIndex < dictionary.length - 1) {
+                currentIndex++;
+                updateSequentialView();
+            }
+        }
+        
+        // 切换释义显示
+        function toggleMeaning() {
+            seqMeaningElement.classList.toggle('show');
+        }
+        
+        // 渲染单词列表
+        function renderWordList() {
+            wordListElement.innerHTML = '';
+            
+            dictionary.forEach((item, index) => {
+                const wordItem = document.createElement('div');
+                wordItem.className = 'word-item';
+                
+                const wordText = document.createElement('div');
+                wordText.className = 'word-text';
+                wordText.textContent = item.word;
+                
+                const wordMeaning = document.createElement('div');
+                wordMeaning.className = 'word-meaning';
+                wordMeaning.textContent = item.meaning;
+                
+                wordItem.appendChild(wordText);
+                wordItem.appendChild(wordMeaning);
+                wordListElement.appendChild(wordItem);
+            });
+        }
+        
+        // 随机抽取单词
+        function pickRandomWord() {
+            if (pickedIndices.size >= dictionary.length) {
+                alert('所有单词都已抽取完毕！');
+                return;
+            }
+            
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * dictionary.length);
+            } while (pickedIndices.has(randomIndex));
+            
+            pickedIndices.add(randomIndex);
+            
+            const wordData = dictionary[randomIndex];
+            randomWordElement.textContent = wordData.word;
+            randomMeaningElement.textContent = wordData.meaning;
+            randomMeaningElement.classList.remove('show');
+            
+            // 标记已抽取的卡片
+            randomCard.classList.add('picked');
+            
+            updateRandomStats();
+        }
+        
+        // 切换随机单词的释义显示
+        function toggleRandomMeaning() {
+            randomMeaningElement.classList.toggle('show');
+        }
+        
+        // 更新随机抽取统计
+        function updateRandomStats() {
+            pickedCountElement.textContent = pickedIndices.size;
+            remainingCountElement.textContent = dictionary.length - pickedIndices.size;
+        }
+        
+        // 导入词典
+        function importDictionary() {
+            const inputText = dictionaryInput.value.trim();
+            
+            if (!inputText) {
+                alert('请输入词典内容！');
+                return;
+            }
+            
+            const lines = inputText.split('\n');
+            const newDictionary = [];
+            
+            for (const line of lines) {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                    const word = parts[0];
+                    const meaning = parts.slice(1).join(' ');
+                    newDictionary.push({ word, meaning });
+                }
+            }
+            
+            if (newDictionary.length === 0) {
+                alert('未找到有效的单词数据！请确保每行包含单词和释义。');
+                return;
+            }
+            
+            dictionary = newDictionary;
+            currentIndex = 0;
+            pickedIndices.clear();
+            
+            // 更新所有视图
+            updateSequentialView();
+            renderWordList();
+            updateRandomStats();
+            
+            // 重置随机抽取卡片
+            randomCard.classList.remove('picked');
+            randomWordElement.textContent = '点击"随机抽取单词"开始';
+            randomMeaningElement.textContent = '';
+            randomMeaningElement.classList.remove('show');
+            
+            alert(`成功导入 ${dictionary.length} 个单词！`);
+        }
+        
+        // 初始化应用
+        init();
+    </script>
+</body>
+</html>
