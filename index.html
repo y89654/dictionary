@@ -132,6 +132,10 @@
             display: none;
         }
         
+        .dict-input {
+            margin: 20px 0;
+        }
+        
         .status-bar {
             background-color: #002244;
             border: 1px solid #00ff00;
@@ -172,20 +176,19 @@
             text-align: center;
         }
         
-        .loading {
-            color: #ffff55;
-            margin: 10px 0;
-            text-align: center;
-        }
-        
-        .file-path {
+        .format-example {
             background-color: #002244;
             border: 1px solid #00ff00;
             padding: 10px;
             margin: 10px 0;
             border-radius: 3px;
-            text-align: center;
             font-size: 14px;
+        }
+        
+        .format-example code {
+            background-color: #001122;
+            padding: 2px 5px;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -195,14 +198,26 @@
         <div id="main-menu">
             <h1>字典查询工具</h1>
             
-            <div class="file-path">
-                字典文件路径: dictionary/dictionary.txt
-            </div>
-            
-            <div id="file-status" class="status-bar">
-                <span id="dict-count">正在加载字典...</span> | 
-                <span id="drawn-count">已抽取: 0</span> | 
-                <span id="wrong-count">错题: 0</span>
+            <div class="dict-input">
+                <label for="dict-textarea">输入字典内容（每行一个词条，格式：英文 中文）：</label>
+                <textarea id="dict-textarea" placeholder="例如：
+apple 苹果
+banana 香蕉
+computer 计算机"></textarea>
+                <div class="format-example">
+                    <strong>格式说明：</strong><br>
+                    每行一个词条，英文和中文之间用空格分隔<br>
+                    例如：<code>hello 你好</code> 或 <code>world 世界</code>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn" onclick="loadDictionary()">加载字典</button>
+                    <button class="btn" onclick="clearDictionary()">清空字典</button>
+                </div>
+                <div id="file-status" class="status-bar">
+                    <span id="dict-count">未加载字典</span> | 
+                    <span id="drawn-count">已抽取: 0</span> | 
+                    <span id="wrong-count">错题: 0</span>
+                </div>
             </div>
             
             <div class="menu">
@@ -211,8 +226,7 @@
                 <button class="btn" onclick="showSection('random-draw')">3. 随机抽取单词</button>
                 <button class="btn" onclick="resetDrawn()">4. 重置已抽取记录</button>
                 <button class="btn" onclick="showSection('wrong-book-menu')">5. 错题本功能</button>
-                <button class="btn" onclick="clearAllData()">6. 清空学习记录</button>
-                <button class="btn" onclick="reloadDictionary()">7. 重新加载字典</button>
+                <button class="btn" onclick="clearAllData()">6. 清空所有数据</button>
             </div>
         </div>
         
@@ -319,57 +333,41 @@
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
-            loadDictionaryFromFile();
+            updateStatus();
+            
+            // 如果已有保存的字典，将其显示在文本区域
+            if (dictionary.length > 0) {
+                displayDictionaryInTextarea();
+            }
         });
         
-        // 从dictionary/dictionary.txt文件加载字典
-        function loadDictionaryFromFile() {
-            showMessage('正在从 dictionary/dictionary.txt 加载字典...', 'loading');
-            
-            // 尝试从不同可能的路径加载字典文件
-            const possiblePaths = [
-                'dictionary/dictionary.txt',
-                './dictionary/dictionary.txt',
-                '../dictionary/dictionary.txt',
-                'dictionary.txt'
-            ];
-            
-            let currentPathIndex = 0;
-            
-            function tryNextPath() {
-                if (currentPathIndex >= possiblePaths.length) {
-                    showMessage('无法加载字典文件，请检查文件路径', 'error');
-                    return;
-                }
-                
-                const path = possiblePaths[currentPathIndex];
-                console.log(`尝试加载字典文件: ${path}`);
-                
-                fetch(path)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`无法加载 ${path}`);
-                        }
-                        return response.text();
-                    })
-                    .then(data => {
-                        document.querySelector('.file-path').textContent = `字典文件路径: ${path}`;
-                        parseDictionary(data);
-                        showMessage(`字典加载成功 (${path})`, 'success');
-                    })
-                    .catch(error => {
-                        console.error(`加载字典文件失败 (${path}):`, error);
-                        currentPathIndex++;
-                        setTimeout(tryNextPath, 100);
-                    });
-            }
-            
-            tryNextPath();
+        // 将字典内容显示在文本区域
+        function displayDictionaryInTextarea() {
+            let text = '';
+            dictionary.forEach(word => {
+                text += `${word.english} ${word.chinese}\n`;
+            });
+            document.getElementById('dict-textarea').value = text;
         }
         
-        // 重新加载字典
-        function reloadDictionary() {
-            loadDictionaryFromFile();
+        // 加载字典
+        function loadDictionary() {
+            const text = document.getElementById('dict-textarea').value;
+            parseDictionary(text);
+        }
+        
+        // 清空字典
+        function clearDictionary() {
+            if (confirm('确定要清空当前字典吗？')) {
+                document.getElementById('dict-textarea').value = '';
+                dictionary = [];
+                drawnNumbers = [];
+                wrongBook = [];
+                wrongTested = [];
+                saveData();
+                updateStatus();
+                showMessage('字典已清空', 'success');
+            }
         }
         
         // 解析字典内容
@@ -395,10 +393,16 @@
             }
             
             if (validCount > 0) {
+                // 重置相关数据
+                drawnNumbers = [];
+                wrongBook = [];
+                wrongTested = [];
+                
                 saveData();
                 updateStatus();
+                showMessage(`成功加载 ${validCount} 个单词`, 'success');
             } else {
-                showMessage('字典文件格式错误，请确保每行格式为"英文 中文"', 'error');
+                showMessage('无法解析字典内容，请检查格式', 'error');
             }
         }
         
@@ -454,7 +458,7 @@
             allWordsDiv.innerHTML = '';
             
             if (dictionary.length === 0) {
-                allWordsDiv.innerHTML = '<p class="error">字典为空</p>';
+                allWordsDiv.innerHTML = '<p class="error">字典为空，请先加载字典</p>';
                 return;
             }
             
@@ -471,7 +475,7 @@
         // 随机抽取单词
         function nextRandom() {
             if (dictionary.length === 0) {
-                showMessage('字典为空', 'error', document.getElementById('random-word'));
+                showMessage('字典为空，请先加载字典', 'error', document.getElementById('random-word'));
                 return;
             }
             
@@ -726,20 +730,22 @@
         
         // 清空所有数据
         function clearAllData() {
-            if (confirm('确定要清空所有学习记录吗？包括抽取记录和错题本？此操作不可撤销！')) {
+            if (confirm('确定要清空所有数据吗？包括字典、抽取记录和错题本？此操作不可撤销！')) {
+                dictionary = [];
                 drawnNumbers = [];
                 wrongBook = [];
                 wrongTested = [];
+                document.getElementById('dict-textarea').value = '';
                 saveData();
                 updateStatus();
-                showMessage('所有学习记录已清空', 'success');
+                showMessage('所有数据已清空', 'success');
             }
         }
         
         // 显示消息
         function showMessage(message, type, container = null) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = type === 'error' ? 'error' : (type === 'loading' ? 'loading' : 'success');
+            messageDiv.className = type === 'error' ? 'error' : 'success';
             messageDiv.textContent = message;
             
             if (container) {
@@ -760,7 +766,7 @@
         // 更新状态栏
         function updateStatus() {
             document.getElementById('dict-count').textContent = 
-                dictionary.length > 0 ? `字典: ${dictionary.length} 个单词` : '字典加载失败';
+                dictionary.length > 0 ? `字典: ${dictionary.length} 个单词` : '未加载字典';
             document.getElementById('drawn-count').textContent = `已抽取: ${drawnNumbers.length}`;
             document.getElementById('wrong-count').textContent = `错题: ${wrongBook.length}`;
         }
@@ -784,8 +790,6 @@
             if (savedDrawnNumbers) drawnNumbers = JSON.parse(savedDrawnNumbers);
             if (savedWrongBook) wrongBook = JSON.parse(savedWrongBook);
             if (savedWrongTested) wrongTested = JSON.parse(savedWrongTested);
-            
-            updateStatus();
         }
     </script>
 </body>
