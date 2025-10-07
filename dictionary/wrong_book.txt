@@ -1,6 +1,0 @@
- 
-105.revelation 揭露，被披露的真相 [原序号:105]
-107.federation 联邦，同盟 [原序号:107]
-119.association 协会，联系 [原序号:119]
-117.institution 机构，建立 [原序号:117]
-49.presence 存在，出席 [原序号:49]
