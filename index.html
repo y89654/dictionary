@@ -177,6 +177,16 @@
             margin: 10px 0;
             text-align: center;
         }
+        
+        .file-path {
+            background-color: #002244;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -184,6 +194,10 @@
         <!-- 主菜单 -->
         <div id="main-menu">
             <h1>字典查询工具</h1>
+            
+            <div class="file-path">
+                字典文件路径: dictionary/dictionary.txt
+            </div>
             
             <div id="file-status" class="status-bar">
                 <span id="dict-count">正在加载字典...</span> | 
@@ -198,6 +212,7 @@
                 <button class="btn" onclick="resetDrawn()">4. 重置已抽取记录</button>
                 <button class="btn" onclick="showSection('wrong-book-menu')">5. 错题本功能</button>
                 <button class="btn" onclick="clearAllData()">6. 清空学习记录</button>
+                <button class="btn" onclick="reloadDictionary()">7. 重新加载字典</button>
             </div>
         </div>
         
@@ -307,25 +322,54 @@
             loadDictionaryFromFile();
         });
         
-        // 从dictionary.txt文件加载字典
+        // 从dictionary/dictionary.txt文件加载字典
         function loadDictionaryFromFile() {
-            showMessage('正在加载字典文件...', 'loading');
+            showMessage('正在从 dictionary/dictionary.txt 加载字典...', 'loading');
             
-            fetch('dictionary.txt')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('无法加载字典文件');
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    parseDictionary(data);
-                    showMessage('字典加载成功', 'success');
-                })
-                .catch(error => {
-                    console.error('加载字典文件时出错:', error);
-                    showMessage('加载字典文件失败，请确保dictionary.txt文件存在', 'error');
-                });
+            // 尝试从不同可能的路径加载字典文件
+            const possiblePaths = [
+                'dictionary/dictionary.txt',
+                './dictionary/dictionary.txt',
+                '../dictionary/dictionary.txt',
+                'dictionary.txt'
+            ];
+            
+            let currentPathIndex = 0;
+            
+            function tryNextPath() {
+                if (currentPathIndex >= possiblePaths.length) {
+                    showMessage('无法加载字典文件，请检查文件路径', 'error');
+                    return;
+                }
+                
+                const path = possiblePaths[currentPathIndex];
+                console.log(`尝试加载字典文件: ${path}`);
+                
+                fetch(path)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`无法加载 ${path}`);
+                        }
+                        return response.text();
+                    })
+                    .then(data => {
+                        document.querySelector('.file-path').textContent = `字典文件路径: ${path}`;
+                        parseDictionary(data);
+                        showMessage(`字典加载成功 (${path})`, 'success');
+                    })
+                    .catch(error => {
+                        console.error(`加载字典文件失败 (${path}):`, error);
+                        currentPathIndex++;
+                        setTimeout(tryNextPath, 100);
+                    });
+            }
+            
+            tryNextPath();
+        }
+        
+        // 重新加载字典
+        function reloadDictionary() {
+            loadDictionaryFromFile();
         }
         
         // 解析字典内容
