@@ -218,7 +218,7 @@
                 <div class="format-example">
                     <strong>字典来源：</strong><br>
                     字典将从以下链接自动加载：<br>
-                    <code>https://gist.githubusercontent.com/<br>y89654/8c313f76ecce6778992eec6d9034<br>15f1/raw/3950465da2a7d1ad5c7764013ac<br>92aa16ea30ef8/dictionary.txt</code>
+                    <code>https://gist.githubusercontent.com/<br>y89654/8c313f76ecce6778992<br>eec6d903415f1/raw/dictionary.txt</code>
                 </div>
             </div>
             
@@ -349,7 +349,7 @@
             loadingMessage.classList.remove('hidden');
             
             try {
-                const response = await fetch('https://gist.githubusercontent.com/y89654/8c313f76ecce6778992eec6d903415f1/raw/3950465da2a7d1ad5c7764013ac92aa16ea30ef8/dictionary.txt');
+                const response = await fetch('https://gist.githubusercontent.com/y89654/8c313f76ecce6778992eec6d903415f1/raw/dictionary.txt');
                 
                 if (!response.ok) {
                     throw new Error(`网络请求失败: ${response.status}`);
