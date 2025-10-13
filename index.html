@@ -190,6 +190,12 @@
             padding: 2px 5px;
             border-radius: 3px;
         }
+        
+        .loading {
+            color: #ffff55;
+            text-align: center;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -199,24 +205,20 @@
             <h1>字典查询工具</h1>
             
             <div class="dict-input">
-                <label for="dict-textarea">输入字典内容（每行一个词条，格式：英文 中文）：</label>
-                <textarea id="dict-textarea" placeholder="例如：
-apple 苹果
-banana 香蕉
-computer 计算机"></textarea>
-                <div class="format-example">
-                    <strong>格式说明：</strong><br>
-                    每行一个词条，英文和中文之间用空格分隔<br>
-                    例如：<code>hello 你好</code> 或 <code>world 世界</code>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn" onclick="loadDictionary()">加载字典</button>
-                    <button class="btn" onclick="clearDictionary()">清空字典</button>
-                </div>
-                <div id="file-status" class="status-bar">
+                <div class="status-bar">
                     <span id="dict-count">未加载字典</span> | 
                     <span id="drawn-count">已抽取: 0</span> | 
                     <span id="wrong-count">错题: 0</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn" onclick="loadDictionaryFromLink()">从链接加载字典</button>
+                    <button class="btn" onclick="clearDictionary()">清空字典</button>
+                </div>
+                <div id="loading-message" class="loading hidden">正在加载字典...</div>
+                <div class="format-example">
+                    <strong>字典来源：</strong><br>
+                    字典将从以下链接自动加载：<br>
+                    <code>https://gist.githubusercontent.com/y89654/8c313f76ecce6778992eec6d903415f1/raw/3950465da2a7d1ad5c7764013ac92aa16ea30ef8/dictionary.txt</code>
                 </div>
             </div>
             
@@ -335,38 +337,31 @@ computer 计算机"></textarea>
             loadData();
             updateStatus();
             
-            // 如果已有保存的字典，将其显示在文本区域
-            if (dictionary.length > 0) {
-                displayDictionaryInTextarea();
+            // 如果字典为空，自动尝试从链接加载
+            if (dictionary.length === 0) {
+                loadDictionaryFromLink();
             }
         });
         
-        // 将字典内容显示在文本区域
-        function displayDictionaryInTextarea() {
-            let text = '';
-            dictionary.forEach(word => {
-                text += `${word.english} ${word.chinese}\n`;
-            });
-            document.getElementById('dict-textarea').value = text;
-        }
-        
-        // 加载字典
-        function loadDictionary() {
-            const text = document.getElementById('dict-textarea').value;
-            parseDictionary(text);
-        }
-        
-        // 清空字典
-        function clearDictionary() {
-            if (confirm('确定要清空当前字典吗？')) {
-                document.getElementById('dict-textarea').value = '';
-                dictionary = [];
-                drawnNumbers = [];
-                wrongBook = [];
-                wrongTested = [];
-                saveData();
-                updateStatus();
-                showMessage('字典已清空', 'success');
+        // 从链接加载字典
+        async function loadDictionaryFromLink() {
+            const loadingMessage = document.getElementById('loading-message');
+            loadingMessage.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('https://gist.githubusercontent.com/y89654/8c313f76ecce6778992eec6d903415f1/raw/3950465da2a7d1ad5c7764013ac92aa16ea30ef8/dictionary.txt');
+                
+                if (!response.ok) {
+                    throw new Error(`网络请求失败: ${response.status}`);
+                }
+                
+                const content = await response.text();
+                parseDictionary(content);
+                loadingMessage.classList.add('hidden');
+            } catch (error) {
+                console.error('加载字典时出错:', error);
+                loadingMessage.classList.add('hidden');
+                showMessage(`加载字典失败: ${error.message}`, 'error');
             }
         }
         
@@ -403,6 +398,19 @@ computer 计算机"></textarea>
                 showMessage(`成功加载 ${validCount} 个单词`, 'success');
             } else {
                 showMessage('无法解析字典内容，请检查格式', 'error');
+            }
+        }
+        
+        // 清空字典
+        function clearDictionary() {
+            if (confirm('确定要清空当前字典吗？')) {
+                dictionary = [];
+                drawnNumbers = [];
+                wrongBook = [];
+                wrongTested = [];
+                saveData();
+                updateStatus();
+                showMessage('字典已清空', 'success');
             }
         }
         
@@ -735,7 +743,6 @@ computer 计算机"></textarea>
                 drawnNumbers = [];
                 wrongBook = [];
                 wrongTested = [];
-                document.getElementById('dict-textarea').value = '';
                 saveData();
                 updateStatus();
                 showMessage('所有数据已清空', 'success');
