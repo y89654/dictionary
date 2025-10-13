@@ -196,6 +196,34 @@
             text-align: center;
             margin: 10px 0;
         }
+        
+        .random-options {
+            margin: 15px 0;
+        }
+        
+        .random-option {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #002244;
+            border: 1px solid #00ff00;
+            border-radius: 3px;
+        }
+        
+        .random-option.active {
+            background-color: #003366;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
+        
+        .range-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .range-inputs input {
+            flex: 1;
+        }
     </style>
 </head>
 <body>
@@ -254,6 +282,27 @@
         <!-- 随机抽取 -->
         <div id="random-draw" class="hidden">
             <h2>随机抽取单词</h2>
+            
+            <div class="random-options">
+                <div class="random-option active" id="option-full-range">
+                    <label>
+                        <input type="radio" name="random-option" value="full" checked onchange="toggleRandomOption()">
+                        在全部范围内抽取
+                    </label>
+                </div>
+                <div class="random-option" id="option-custom-range">
+                    <label>
+                        <input type="radio" name="random-option" value="custom" onchange="toggleRandomOption()">
+                        在指定区间内抽取
+                    </label>
+                    <div class="range-inputs" id="range-inputs" style="display: none;">
+                        <input type="number" id="range-start" placeholder="起始序号" min="1">
+                        <span>到</span>
+                        <input type="number" id="range-end" placeholder="结束序号" min="1">
+                    </div>
+                </div>
+            </div>
+            
             <div id="random-word" class="result"></div>
             <div class="action-buttons">
                 <button class="btn" onclick="showTranslation()">显示中文</button>
@@ -331,6 +380,7 @@
         let currentRandomIndex = -1;
         let currentWrongIndex = -1;
         let currentEditIndex = -1;
+        let currentRandomRange = null; // 当前随机抽取的范围
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -431,6 +481,12 @@
             } else if (sectionId === 'show-all') {
                 showAllWords();
             } else if (sectionId === 'random-draw') {
+                // 重置随机抽取选项
+                document.getElementById('option-full-range').classList.add('active');
+                document.getElementById('option-custom-range').classList.remove('active');
+                document.getElementById('range-inputs').style.display = 'none';
+                document.querySelector('input[name="random-option"][value="full"]').checked = true;
+                currentRandomRange = null;
                 nextRandom();
             } else if (sectionId === 'wrong-book-menu') {
                 updateWrongBookCount();
@@ -438,6 +494,28 @@
                 nextWrongTest();
             } else if (sectionId === 'edit-wrong-words') {
                 showEditWrongWords();
+            }
+        }
+        
+        // 切换随机抽取选项
+        function toggleRandomOption() {
+            const fullRangeOption = document.getElementById('option-full-range');
+            const customRangeOption = document.getElementById('option-custom-range');
+            const rangeInputs = document.getElementById('range-inputs');
+            
+            if (document.querySelector('input[name="random-option"]:checked').value === 'full') {
+                fullRangeOption.classList.add('active');
+                customRangeOption.classList.remove('active');
+                rangeInputs.style.display = 'none';
+                currentRandomRange = null;
+            } else {
+                fullRangeOption.classList.remove('active');
+                customRangeOption.classList.add('active');
+                rangeInputs.style.display = 'flex';
+                currentRandomRange = {
+                    start: parseInt(document.getElementById('range-start').value) || 1,
+                    end: parseInt(document.getElementById('range-end').value) || dictionary.length
+                };
             }
         }
         
@@ -487,25 +565,57 @@
                 return;
             }
             
-            // 如果所有单词都已抽取，提示重置
-            if (drawnNumbers.length >= dictionary.length) {
-                showMessage('所有单词都已抽取，请重置抽取记录', 'error', document.getElementById('random-word'));
+            // 获取抽取范围
+            let startIndex = 0;
+            let endIndex = dictionary.length - 1;
+            
+            if (currentRandomRange) {
+                startIndex = Math.max(0, currentRandomRange.start - 1);
+                endIndex = Math.min(dictionary.length - 1, currentRandomRange.end - 1);
+                
+                if (startIndex > endIndex) {
+                    showMessage('区间设置无效，请检查起始和结束序号', 'error', document.getElementById('random-word'));
+                    return;
+                }
+            }
+            
+            // 计算范围内的单词数量
+            const rangeLength = endIndex - startIndex + 1;
+            
+            // 如果范围内的所有单词都已抽取，提示重置
+            let allDrawnInRange = true;
+            for (let i = startIndex; i <= endIndex; i++) {
+                if (!drawnNumbers.includes(i)) {
+                    allDrawnInRange = false;
+                    break;
+                }
+            }
+            
+            if (allDrawnInRange) {
+                showMessage('指定范围内的所有单词都已抽取，请重置抽取记录或更换范围', 'error', document.getElementById('random-word'));
                 return;
             }
             
             // 生成随机数，排除已抽取的
             let randomIndex;
             do {
-                randomIndex = Math.floor(Math.random() * dictionary.length);
+                randomIndex = Math.floor(Math.random() * rangeLength) + startIndex;
             } while (drawnNumbers.includes(randomIndex));
             
             currentRandomIndex = randomIndex;
             const word = dictionary[randomIndex];
             
+            let rangeInfo = '';
+            if (currentRandomRange) {
+                rangeInfo = `<p><small>抽取范围: ${currentRandomRange.start} - ${currentRandomRange.end}</small></p>`;
+            }
+            
             document.getElementById('random-word').innerHTML = `
                 <h3>随机抽取的单词</h3>
                 <p><strong>英文:</strong> ${word.english}</p>
                 <p><strong>中文:</strong> <span id="random-chinese" class="hidden">${word.chinese}</span></p>
+                <p><small>单词序号: ${randomIndex + 1}</small></p>
+                ${rangeInfo}
             `;
             
             // 记录已抽取
