@@ -438,14 +438,13 @@
             }
             
             if (validCount > 0) {
-                // 重置相关数据
+                // 只重置字典和抽取记录，保留错题本数据
                 drawnNumbers = [];
-                wrongBook = [];
-                wrongTested = [];
+                // wrongBook 和 wrongTested 不再重置，保留错题本数据
                 
                 saveData();
                 updateStatus();
-                showMessage(`成功加载 ${validCount} 个单词`, 'success');
+                showMessage(`成功加载 ${validCount} 个单词，错题本数据已保留`, 'success');
             } else {
                 showMessage('无法解析字典内容，请检查格式', 'error');
             }
@@ -453,14 +452,13 @@
         
         // 清空字典
         function clearDictionary() {
-            if (confirm('确定要清空当前字典吗？')) {
+            if (confirm('确定要清空当前字典吗？错题本数据将保留。')) {
                 dictionary = [];
                 drawnNumbers = [];
-                wrongBook = [];
-                wrongTested = [];
+                // wrongBook 和 wrongTested 保留
                 saveData();
                 updateStatus();
-                showMessage('字典已清空', 'success');
+                showMessage('字典已清空，错题本数据保留', 'success');
             }
         }
         
