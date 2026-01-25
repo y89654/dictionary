@@ -546,19 +546,17 @@ input:focus, textarea:focus {
                 }
             }
             
-            // 计算范围内的单词数量
+            // 计算范围内的单词数量和未被抽取的数量
             const rangeLength = endIndex - startIndex + 1;
-            
-            // 如果范围内的所有单词都已抽取，提示重置
-            let allDrawnInRange = true;
+            let remainingCount = 0;
             for (let i = startIndex; i <= endIndex; i++) {
                 if (!drawnNumbers.includes(i)) {
-                    allDrawnInRange = false;
-                    break;
+                    remainingCount++;
                 }
             }
             
-            if (allDrawnInRange) {
+            // 如果范围内的所有单词都已抽取，提示重置
+            if (remainingCount === 0) {
                 showMessage('指定范围内的所有单词都已抽取，请重置抽取记录或更换范围', 'error', document.getElementById('random-word'));
                 return;
             }
@@ -582,6 +580,7 @@ input:focus, textarea:focus {
                 <p><strong>英文:</strong> ${word.english}</p>
                 <p><strong>中文:</strong> <span id="random-chinese" class="hidden">${word.chinese}</span></p>
                 <p><small>单词序号: ${randomIndex + 1}</small></p>
+                <p><small>范围内剩余未抽取: ${remainingCount} 个</small></p>
                 ${rangeInfo}
             `;
             
