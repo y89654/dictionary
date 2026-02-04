@@ -757,24 +757,37 @@
         function nextWrongTest() {
             if (wrongBook.length === 0) {
                 showMessage('错题本为空', 'error', document.getElementById('test-word'));
+                // 返回错题本菜单
+                showSection('wrong-book-menu');
                 return;
             }
             
-            // 如果所有错题都已测试，提示重置
+            // 重置当前测试索引
+            currentWrongIndex = -1;
+            
+            // 如果所有错题都已测试，重置测试记录并显示第一个
             if (wrongTested.length >= wrongBook.length) {
-                if (confirm('所有错题都已测试，是否重置测试记录？')) {
-                    resetWrongTested();
-                } else {
-                    showSection('wrong-book-menu');
-                    return;
-                }
+                showMessage('所有错题都已测试，已自动重置测试记录', 'success', document.getElementById('test-word'));
+                wrongTested = [];
+                saveData();
             }
             
             // 生成随机数，排除已测试的
             let randomIndex;
+            let attempts = 0;
+            const maxAttempts = 100; // 防止无限循环
+            
             do {
                 randomIndex = Math.floor(Math.random() * wrongBook.length);
-            } while (wrongTested.includes(randomIndex));
+                attempts++;
+            } while (wrongTested.includes(randomIndex) && attempts < maxAttempts);
+            
+            // 如果尝试次数过多，重置测试记录
+            if (attempts >= maxAttempts) {
+                wrongTested = [];
+                randomIndex = Math.floor(Math.random() * wrongBook.length);
+                showMessage('已重置测试记录', 'success', document.getElementById('test-word'));
+            }
             
             currentWrongIndex = randomIndex;
             const word = wrongBook[randomIndex];
@@ -790,9 +803,10 @@
                 <p><strong>中文:</strong> <span id="test-chinese" class="hidden">${word.chinese}</span></p>
                 ${originalWordInfo}
                 <p><small>添加日期: ${word.addedDate || '未知'}</small></p>
+                <p><small>测试进度: ${wrongTested.length + 1}/${wrongBook.length}</small></p>
             `;
             
-            // 记录已测试
+            // 记录已测试（只有在页面显示时才记录）
             if (!wrongTested.includes(randomIndex)) {
                 wrongTested.push(randomIndex);
                 saveData();
@@ -808,22 +822,36 @@
         function removeFromWrongBook() {
             if (currentWrongIndex === -1 || wrongBook.length === 0) return;
             
+            // 获取要移除的单词信息
+            const removedWord = wrongBook[currentWrongIndex];
+            
+            // 从错题本移除
             wrongBook.splice(currentWrongIndex, 1);
             
-            // 更新测试记录
-            wrongTested = wrongTested.filter(index => index !== currentWrongIndex);
-            // 调整大于当前索引的记录
-            wrongTested = wrongTested.map(index => index > currentWrongIndex ? index - 1 : index);
+            // 从测试记录中移除当前索引，并调整其他索引
+            const testIndex = wrongTested.indexOf(currentWrongIndex);
+            if (testIndex !== -1) {
+                wrongTested.splice(testIndex, 1);
+            }
+            
+            // 调整大于当前索引的测试记录
+            wrongTested = wrongTested.map(index => {
+                if (index > currentWrongIndex) {
+                    return index - 1;
+                }
+                return index;
+            });
             
             saveData();
             updateStatus();
             
-            showMessage('该单词已从错题本移除', 'success', document.getElementById('test-word'));
+            // 显示移除消息
+            showMessage(`已移除单词: ${removedWord.english}`, 'success', document.getElementById('test-word'));
             
-            // 继续下一个测试
+            // 延迟后继续下一个测试
             setTimeout(() => {
                 nextWrongTest();
-            }, 1000);
+            }, 1500);
         }
         
         // 显示所有错题
@@ -925,18 +953,32 @@
                 saveData();
                 updateStatus();
                 showMessage('错题本已清空', 'success');
+                
+                // 如果当前在错题本测试页面，返回菜单
+                if (!document.getElementById('wrong-book-test').classList.contains('hidden')) {
+                    showSection('wrong-book-menu');
+                }
             }
         }
         
         // 重置错题测试记录
         function resetWrongTested() {
-            wrongTested = [];
-            saveData();
-            showMessage('已重置错题测试记录', 'success');
+            if (wrongBook.length === 0) {
+                showMessage('错题本为空，无需重置', 'error');
+                return;
+            }
             
-            // 重新开始测试
-            if (!document.getElementById('wrong-book-test').classList.contains('hidden')) {
-                nextWrongTest();
+            if (confirm('确定要重置错题测试记录吗？这将重新开始测试所有错题。')) {
+                wrongTested = [];
+                saveData();
+                showMessage('已重置错题测试记录', 'success');
+                
+                // 如果当前在错题本测试页面，重新开始测试
+                if (!document.getElementById('wrong-book-test').classList.contains('hidden')) {
+                    setTimeout(() => {
+                        nextWrongTest();
+                    }, 500);
+                }
             }
         }
         
@@ -960,6 +1002,10 @@
             messageDiv.textContent = message;
             
             if (container) {
+                // 如果容器有内容，先清除旧消息
+                const oldMessages = container.querySelectorAll('.error, .success');
+                oldMessages.forEach(msg => msg.remove());
+                
                 container.appendChild(messageDiv);
                 setTimeout(() => {
                     messageDiv.remove();
@@ -967,6 +1013,11 @@
             } else {
                 // 在主菜单显示消息
                 const mainMenu = document.getElementById('main-menu');
+                
+                // 如果已有消息，先清除
+                const oldMessages = mainMenu.querySelectorAll('.error, .success');
+                oldMessages.forEach(msg => msg.remove());
+                
                 mainMenu.appendChild(messageDiv);
                 setTimeout(() => {
                     messageDiv.remove();
