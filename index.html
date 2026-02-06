@@ -234,6 +234,102 @@
             width: auto;
             flex: 1;
         }
+        
+        /* 范围重置对话框 */
+        .reset-dialog {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+            border: 2px solid #e5ebf3;
+        }
+        
+        .reset-option {
+            margin: 10px 0;
+            padding: 12px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5ebf3;
+            cursor: pointer;
+        }
+        
+        .reset-option:hover {
+            border-color: #4facfe;
+            background: #f0f7ff;
+        }
+        
+        .reset-option.active {
+            border-color: #4facfe;
+            background: #f0f7ff;
+        }
+        
+        .start-random-btn {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 14px;
+            font-size: 18px;
+        }
+        
+        /* 范围编辑区域 */
+        .edit-range-container {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px dashed #e5ebf3;
+        }
+        
+        .range-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .range-display span {
+            font-weight: 500;
+            color: #34495e;
+        }
+        
+        .edit-range-btn {
+            padding: 6px 12px;
+            font-size: 14px;
+            background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+        }
+        
+        .range-edit-form {
+            display: none;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e5ebf3;
+        }
+        
+        .range-edit-form.active {
+            display: block;
+        }
+        
+        .range-edit-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .range-edit-buttons .btn {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        
+        .save-range-btn {
+            background: linear-gradient(135deg, #56ab2f, #a8e063);
+            box-shadow: 0 4px 10px rgba(86, 171, 47, 0.35);
+        }
+        
+        .cancel-range-btn {
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            box-shadow: 0 4px 10px rgba(255, 154, 158, 0.35);
+        }
     </style>
 </head>
 <body>
@@ -264,7 +360,7 @@
                 <button class="btn" onclick="showSection('query-by-number')">1. 按序号查询单词</button>
                 <button class="btn" onclick="showSection('show-all')">2. 显示全部单词</button>
                 <button class="btn" onclick="showSection('random-draw')">3. 随机抽取单词</button>
-                <button class="btn" onclick="resetDrawn()">4. 重置已抽取记录</button>
+                <button class="btn" onclick="showSection('reset-drawn-menu')">4. 重置已抽取记录</button>
                 <button class="btn" onclick="showSection('wrong-book-menu')">5. 错题本功能</button>
                 <button class="btn" onclick="clearAllData()">6. 清空所有数据</button>
             </div>
@@ -313,13 +409,71 @@
                 </div>
             </div>
             
-            <div id="random-word" class="result"></div>
-            <div class="action-buttons">
+            <button class="btn start-random-btn" id="start-random-btn" onclick="startRandomDraw()">开始随机抽取</button>
+            
+            <div id="random-word" class="result" style="display: none;"></div>
+            
+            <!-- 范围编辑区域 -->
+            <div id="range-edit-container" class="edit-range-container hidden">
+                <div class="range-display">
+                    <span>当前抽取范围: <span id="current-range-text">全部范围</span></span>
+                    <button class="btn edit-range-btn" onclick="toggleRangeEdit()">修改范围</button>
+                </div>
+                <div id="range-edit-form" class="range-edit-form">
+                    <div class="range-inputs">
+                        <input type="number" id="edit-range-start" placeholder="起始序号" min="1">
+                        <span>到</span>
+                        <input type="number" id="edit-range-end" placeholder="结束序号" min="1">
+                    </div>
+                    <div class="range-edit-buttons">
+                        <button class="btn save-range-btn" onclick="saveNewRange()">保存新范围</button>
+                        <button class="btn cancel-range-btn" onclick="toggleRangeEdit()">取消</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons" id="random-buttons" style="display: none;">
                 <button class="btn" onclick="showTranslation()">显示中文</button>
                 <button class="btn" onclick="addToWrongBook()">加入错题本</button>
                 <button class="btn" onclick="nextRandom()">下一个</button>
             </div>
             <button class="btn back-btn" onclick="showSection('main-menu')">返回主菜单</button>
+        </div>
+        
+        <!-- 重置已抽取记录菜单 -->
+        <div id="reset-drawn-menu" class="hidden">
+            <h2>重置已抽取记录</h2>
+            <div class="status-bar">
+                当前已抽取 <span id="current-drawn-count">0</span> 个单词
+            </div>
+            
+            <div class="reset-dialog">
+                <h3>选择重置范围</h3>
+                <div class="reset-option active" id="reset-option-all" onclick="selectResetOption('all')">
+                    <label>
+                        <input type="radio" name="reset-option" value="all" checked>
+                        重置所有已抽取记录
+                    </label>
+                    <p style="font-size: 13px; color: #666; margin-top: 5px;">清除所有单词的抽取记录，从头开始</p>
+                </div>
+                <div class="reset-option" id="reset-option-range" onclick="selectResetOption('range')">
+                    <label>
+                        <input type="radio" name="reset-option" value="range">
+                        重置指定区间的抽取记录
+                    </label>
+                    <div class="range-inputs" id="reset-range-inputs" style="display: none; margin-top: 10px;">
+                        <input type="number" id="reset-range-start" placeholder="起始序号" min="1" onchange="validateResetRange()">
+                        <span>到</span>
+                        <input type="number" id="reset-range-end" placeholder="结束序号" min="1" onchange="validateResetRange()">
+                    </div>
+                    <p style="font-size: 13px; color: #666; margin-top: 5px;">仅清除指定序号范围内单词的抽取记录</p>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn" onclick="executeResetDrawn()">执行重置</button>
+                <button class="btn back-btn" onclick="showSection('main-menu')">返回主菜单</button>
+            </div>
         </div>
         
         <!-- 错题本菜单 -->
@@ -391,6 +545,8 @@
         let currentWrongIndex = -1;
         let currentEditIndex = -1;
         let currentRandomRange = null; // 当前随机抽取的范围
+        let isRandomStarted = false; // 标记随机抽取是否已开始
+        let pendingNewRange = null; // 等待应用的新范围
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -543,13 +699,23 @@
             } else if (sectionId === 'show-all') {
                 showAllWords();
             } else if (sectionId === 'random-draw') {
-                // 重置随机抽取选项
+                // 重置随机抽取状态
                 document.getElementById('option-full-range').classList.add('active');
                 document.getElementById('option-custom-range').classList.remove('active');
                 document.getElementById('range-inputs').style.display = 'none';
                 document.querySelector('input[name="random-option"][value="full"]').checked = true;
                 currentRandomRange = null;
-                nextRandom();
+                isRandomStarted = false;
+                pendingNewRange = null;
+                
+                // 显示开始按钮，隐藏结果和操作按钮
+                document.getElementById('start-random-btn').style.display = 'block';
+                document.getElementById('random-word').style.display = 'none';
+                document.getElementById('random-buttons').style.display = 'none';
+                document.getElementById('range-edit-container').classList.add('hidden');
+            } else if (sectionId === 'reset-drawn-menu') {
+                document.getElementById('current-drawn-count').textContent = drawnNumbers.length;
+                selectResetOption('all'); // 默认选中全部重置
             } else if (sectionId === 'wrong-book-menu') {
                 updateWrongBookCount();
             } else if (sectionId === 'wrong-book-test') {
@@ -574,64 +740,121 @@
                 fullRangeOption.classList.remove('active');
                 customRangeOption.classList.add('active');
                 rangeInputs.style.display = 'flex';
+                // 设置默认值
+                document.getElementById('range-start').value = 1;
+                document.getElementById('range-end').value = dictionary.length || 1;
                 currentRandomRange = {
-                    start: parseInt(document.getElementById('range-start').value) || 1,
-                    end: parseInt(document.getElementById('range-end').value) || dictionary.length
+                    start: 1,
+                    end: dictionary.length || 1
                 };
             }
         }
         
-        // 按序号查询
-        function queryByNumber() {
-            const number = parseInt(document.getElementById('query-number').value);
-            const resultDiv = document.getElementById('query-result');
-            
-            if (isNaN(number) || number < 1 || number > dictionary.length) {
-                showMessage('请输入有效的序号', 'error', resultDiv);
+        // 开始随机抽取
+        function startRandomDraw() {
+            if (dictionary.length === 0) {
+                showMessage('字典为空，请先加载字典', 'error');
                 return;
             }
             
-            const word = dictionary[number - 1];
-            const isDrawn = drawnNumbers.includes(number - 1);
+            // 获取抽取范围
+            if (document.querySelector('input[name="random-option"]:checked').value === 'custom') {
+                const start = parseInt(document.getElementById('range-start').value) || 1;
+                const end = parseInt(document.getElementById('range-end').value) || dictionary.length;
+                
+                if (isNaN(start) || isNaN(end) || start < 1 || end > dictionary.length || start > end) {
+                    showMessage('区间设置无效，请检查起始和结束序号', 'error');
+                    return;
+                }
+                
+                currentRandomRange = {
+                    start: start,
+                    end: end
+                };
+            } else {
+                currentRandomRange = null;
+            }
             
-            resultDiv.innerHTML = `
-                <h3>查询结果</h3>
-                <p><strong>序号:</strong> ${number}</p>
-                <p><strong>英文:</strong> ${word.english}</p>
-                <p><strong>中文:</strong> ${word.chinese}</p>
-                <p><strong>状态:</strong> ${isDrawn ? '✅ 已抽取' : '⭕ 未抽取'}</p>
-            `;
+            isRandomStarted = true;
+            document.getElementById('start-random-btn').style.display = 'none';
+            document.getElementById('random-word').style.display = 'block';
+            document.getElementById('random-buttons').style.display = 'flex';
+            document.getElementById('range-edit-container').classList.remove('hidden');
+            
+            updateRangeDisplay();
+            nextRandom();
         }
         
-        // 显示所有单词
-        function showAllWords() {
-            const allWordsDiv = document.getElementById('all-words');
-            allWordsDiv.innerHTML = '';
+        // 更新范围显示
+        function updateRangeDisplay() {
+            const rangeTextElement = document.getElementById('current-range-text');
+            if (currentRandomRange) {
+                rangeTextElement.textContent = `${currentRandomRange.start} - ${currentRandomRange.end}`;
+                // 设置编辑表单的默认值
+                document.getElementById('edit-range-start').value = currentRandomRange.start;
+                document.getElementById('edit-range-end').value = currentRandomRange.end;
+            } else {
+                rangeTextElement.textContent = '全部范围';
+                // 设置编辑表单的默认值
+                document.getElementById('edit-range-start').value = 1;
+                document.getElementById('edit-range-end').value = dictionary.length || 1;
+            }
+        }
+        
+        // 切换范围编辑表单
+        function toggleRangeEdit() {
+            const editForm = document.getElementById('range-edit-form');
+            if (editForm.classList.contains('active')) {
+                editForm.classList.remove('active');
+            } else {
+                editForm.classList.add('active');
+                // 设置表单的当前值
+                if (currentRandomRange) {
+                    document.getElementById('edit-range-start').value = currentRandomRange.start;
+                    document.getElementById('edit-range-end').value = currentRandomRange.end;
+                } else {
+                    document.getElementById('edit-range-start').value = 1;
+                    document.getElementById('edit-range-end').value = dictionary.length || 1;
+                }
+            }
+        }
+        
+        // 保存新范围
+        function saveNewRange() {
+            const start = parseInt(document.getElementById('edit-range-start').value) || 1;
+            const end = parseInt(document.getElementById('edit-range-end').value) || dictionary.length;
             
-            if (dictionary.length === 0) {
-                allWordsDiv.innerHTML = '<p class="error">字典为空，请先加载字典</p>';
+            if (isNaN(start) || isNaN(end) || start < 1 || end > dictionary.length || start > end) {
+                showMessage('区间设置无效，请检查起始和结束序号', 'error');
                 return;
             }
             
-            dictionary.forEach((word, index) => {
-                const isDrawn = drawnNumbers.includes(index);
-                const wordDiv = document.createElement('div');
-                wordDiv.className = 'word-item';
-                wordDiv.innerHTML = `
-                    <strong>${index + 1}.</strong> ${word.english} - ${word.chinese}
-                    <span style="float:right; color:${isDrawn ? '#27ae60' : '#95a5a6'}">
-                        ${isDrawn ? '✅ 已抽取' : '⭕ 未抽取'}
-                    </span>
-                `;
-                allWordsDiv.appendChild(wordDiv);
-            });
+            // 设置待应用的新范围
+            pendingNewRange = {
+                start: start,
+                end: end
+            };
+            
+            // 更新显示
+            document.getElementById('current-range-text').textContent = `${start} - ${end}`;
+            
+            // 隐藏编辑表单
+            document.getElementById('range-edit-form').classList.remove('active');
+            
+            showMessage('新范围已设置，点击"下一个"时生效', 'success');
         }
         
         // 随机抽取单词
         function nextRandom() {
-            if (dictionary.length === 0) {
-                showMessage('字典为空，请先加载字典', 'error', document.getElementById('random-word'));
+            if (dictionary.length === 0 || !isRandomStarted) {
                 return;
+            }
+            
+            // 如果有待应用的新范围，先应用它
+            if (pendingNewRange) {
+                currentRandomRange = pendingNewRange;
+                pendingNewRange = null;
+                showMessage('已应用新抽取范围', 'success', document.getElementById('random-word'));
             }
             
             // 获取抽取范围
@@ -733,17 +956,75 @@
             }
         }
         
-        // 重置已抽取记录
-        function resetDrawn() {
-            if (confirm('确定要重置所有已抽取记录吗？')) {
-                drawnNumbers = [];
-                saveData();
-                updateStatus();
-                showMessage('已重置所有抽取记录', 'success');
+        // 选择重置选项
+        function selectResetOption(option) {
+            // 移除所有选项的active类
+            document.getElementById('reset-option-all').classList.remove('active');
+            document.getElementById('reset-option-range').classList.remove('active');
+            
+            // 设置选中的选项
+            document.getElementById('reset-option-' + option).classList.add('active');
+            document.querySelector(`input[name="reset-option"][value="${option}"]`).checked = true;
+            
+            // 显示/隐藏范围输入框
+            if (option === 'range') {
+                document.getElementById('reset-range-inputs').style.display = 'flex';
+                // 设置默认值
+                document.getElementById('reset-range-start').value = 1;
+                document.getElementById('reset-range-end').value = dictionary.length || 1;
+            } else {
+                document.getElementById('reset-range-inputs').style.display = 'none';
+            }
+        }
+        
+        // 验证重置范围
+        function validateResetRange() {
+            const start = parseInt(document.getElementById('reset-range-start').value) || 1;
+            const end = parseInt(document.getElementById('reset-range-end').value) || 1;
+            
+            if (start < 1) {
+                document.getElementById('reset-range-start').value = 1;
+            }
+            if (end > dictionary.length) {
+                document.getElementById('reset-range-end').value = dictionary.length;
+            }
+            if (start > end) {
+                document.getElementById('reset-range-end').value = start;
+            }
+        }
+        
+        // 执行重置已抽取记录
+        function executeResetDrawn() {
+            const option = document.querySelector('input[name="reset-option"]:checked').value;
+            
+            if (option === 'all') {
+                if (confirm('确定要重置所有已抽取记录吗？')) {
+                    drawnNumbers = [];
+                    saveData();
+                    updateStatus();
+                    showMessage('已重置所有抽取记录', 'success');
+                    showSection('main-menu');
+                }
+            } else if (option === 'range') {
+                const start = parseInt(document.getElementById('reset-range-start').value) || 1;
+                const end = parseInt(document.getElementById('reset-range-end').value) || dictionary.length;
                 
-                // 如果当前在随机抽取页面，重新抽取一个
-                if (!document.getElementById('random-draw').classList.contains('hidden')) {
-                    nextRandom();
+                if (isNaN(start) || isNaN(end) || start < 1 || end > dictionary.length || start > end) {
+                    showMessage('区间设置无效，请检查起始和结束序号', 'error');
+                    return;
+                }
+                
+                if (confirm(`确定要重置序号 ${start} 到 ${end} 范围内的抽取记录吗？`)) {
+                    const startIndex = start - 1;
+                    const endIndex = end - 1;
+                    
+                    // 移除指定范围内的抽取记录
+                    drawnNumbers = drawnNumbers.filter(index => index < startIndex || index > endIndex);
+                    
+                    saveData();
+                    updateStatus();
+                    showMessage(`已重置序号 ${start} 到 ${end} 范围内的抽取记录`, 'success');
+                    showSection('main-menu');
                 }
             }
         }
